@@ -452,7 +452,7 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#12121a] via-[#12121a]/50 to-transparent" />
                 <div className="relative p-6">
                   <div className="text-xs font-medium mb-2" style={{ color: "#f4c542" }}>✨ PRO FEATURE</div>
-                  <h3 className="font-display text-xl font-bold text-white mb-2">Explore the Universe</h3>
+                  <h3 className="font-display text-xl font-bold text-white mb-2">Explore the Universe Ramjeet</h3>
                   <p className="text-sm mb-4" style={{ color: "#9090b0" }}>
                     Unlock advanced capabilities and take your experience to new heights.
                   </p>
