@@ -25,7 +25,7 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://54.234.186.64:8000
+        NEXT_PUBLIC_API_URL: http://52.90.99.242:8000
     container_name: lumina_frontend
     restart: always
     depends_on:
