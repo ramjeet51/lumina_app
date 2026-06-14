@@ -25,7 +25,7 @@ Lumina is a full-stack application deployed using a complete DevOps and GitOps w
 ## Infrastructure Setup
 
 ### Jenkins Server
-- Public IP: 13.218.147.178
+- Public IP: 
 - Purpose:
   - Source Code Pull
   - Docker Build
@@ -34,8 +34,8 @@ Lumina is a full-stack application deployed using a complete DevOps and GitOps w
   - CI/CD Automation
 
 ### Kubernetes Master Node
-- Public IP: 54.166.238.159
-- Private IP: 172.31.43.76
+- Public IP: 
+- Private IP: 
 - Purpose:
   - API Server
   - Scheduler
@@ -45,8 +45,8 @@ Lumina is a full-stack application deployed using a complete DevOps and GitOps w
   - Cluster Management
 
 ### Kubernetes Worker Node
-- Public IP: 52.55.48.87
-- Private IP: 172.31.42.19
+- Public IP: 
+- Private IP: 
 - Purpose:
   - Frontend Pods
   - Backend Pods
