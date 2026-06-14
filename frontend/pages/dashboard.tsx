@@ -464,7 +464,7 @@ export default function Dashboard() {
 
           {/* Footer Note */}
           <p className="text-center text-xs mt-10" style={{ color: "#404060" }}>
-            You are securely logged in · Session expires in 24 hours
+            You are securely logged in · Session expires in 36 hours
           </p>
         </main>
       </div>
