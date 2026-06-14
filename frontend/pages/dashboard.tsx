@@ -454,7 +454,7 @@ export default function Dashboard() {
                   <div className="text-xs font-medium mb-2" style={{ color: "#f4c542" }}>✨ PRO FEATURE</div>
                   <h3 className="font-display text-xl font-bold text-white mb-2">Explore the Universe</h3>
                   <p className="text-sm mb-4" style={{ color: "#9090b0" }}>
-                    Unlock advanced capabilities and take your experience to new heights Ramjeet.
+                    Unlock advanced capabilities and take your experience to new heights.
                   </p>
                   <button className="gold-btn px-5 py-2 text-sm">Upgrade Now !</button>
                 </div>
