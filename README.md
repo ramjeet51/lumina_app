@@ -1,191 +1,150 @@
-# 🌟 Lumina — Auth App
+# Lumina Application - Complete DevOps, Kubernetes & GitOps Deployment
 
-A full-stack Login / Register application with:
+## Overview
 
-- **Backend**: Python FastAPI + bcrypt + JWT
-- **Frontend**: Next.js 14 + TypeScript + Tailwind CSS
-- **Database**: MySQL 8 (tables auto-created at startup)
-- **Design**: Animated starfield background, glassmorphism, gold accents
+Lumina is a full-stack application deployed using a complete DevOps and GitOps workflow. The project demonstrates containerization, CI/CD automation, Kubernetes orchestration, GitOps deployment, domain routing, SSL configuration, and production-style infrastructure management.
 
----
+## Technology Stack
 
-## 📁 Project Structure
+### Application
+- Frontend: Next.js
+- Backend: FastAPI
+- Database: MySQL
 
-```
-app/
+### DevOps Tools
+- Git & GitHub
+- Docker
+- Docker Hub
+- Jenkins
+- Kubernetes (Kubeadm)
+- ArgoCD
+- NGINX Ingress Controller
+- NGINX Reverse Proxy
+- Let's Encrypt SSL (Certbot)
+
+## Infrastructure Setup
+
+### Jenkins Server
+- Public IP: 13.218.147.178
+- Purpose:
+  - Source Code Pull
+  - Docker Build
+  - Docker Push
+  - Manifest Update
+  - CI/CD Automation
+
+### Kubernetes Master Node
+- Public IP: 54.166.238.159
+- Private IP: 172.31.43.76
+- Purpose:
+  - API Server
+  - Scheduler
+  - Controller Manager
+  - ETCD
+  - ArgoCD
+  - Cluster Management
+
+### Kubernetes Worker Node
+- Public IP: 52.55.48.87
+- Private IP: 172.31.42.19
+- Purpose:
+  - Frontend Pods
+  - Backend Pods
+  - NGINX Reverse Proxy
+  - Application Workloads
+
+## Project Structure
+
+```text
+lumina_app/
+│
 ├── backend/
-│   ├── main.py            # FastAPI app — all routes
+│   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env.example
+│   └── FastAPI Source Code
+│
 ├── frontend/
-│   ├── pages/
-│   │   ├── index.tsx      # Login / Register page
-│   │   └── dashboard.tsx  # Protected dashboard
-│   ├── components/
-│   │   └── AnimatedBackground.tsx
-│   ├── lib/
-│   │   └── api.ts         # API helper + token utils
-│   ├── styles/
-│   │   └── globals.css    # Animations + design system
 │   ├── Dockerfile
-│   └── .env.local.example
-└── docker-compose.yml
+│   ├── package.json
+│   └── Next.js Source Code
+│
+├── docker-compose.yml
+│
+└── kubernetes/
+    ├── namespace.yaml
+    ├── backend-deployment.yaml
+    ├── backend-service.yaml
+    ├── frontend-deployment.yaml
+    ├── frontend-service.yaml
+    └── ingress.yaml
 ```
 
----
+## Dockerization
 
-## 🗄️ Database Tables (auto-created)
+### Backend Image
+```bash
+docker build -t ramjeet500/lumina-backend .
+```
 
-### `users`
-| Column       | Type         | Notes                    |
-|-------------|--------------|--------------------------|
-| id          | INT PK AUTO  |                          |
-| full_name   | VARCHAR(100) |                          |
-| email       | VARCHAR(255) | UNIQUE                   |
-| password    | VARCHAR(255) | bcrypt hashed            |
-| avatar_seed | VARCHAR(50)  | Used for DiceBear avatar |
-| created_at  | DATETIME     |                          |
-| last_login  | DATETIME     |                          |
+### Frontend Image
+```bash
+docker build --build-arg NEXT_PUBLIC_API_URL=https://api.checkops.in -t ramjeet500/lumina-frontend .
+```
 
-### `login_history`
-| Column     | Type        | Notes              |
-|------------|-------------|--------------------|
-| id         | INT PK AUTO |                    |
-| user_id    | INT FK      | → users.id CASCADE |
-| logged_in  | DATETIME    |                    |
-| ip_address | VARCHAR(45) |                    |
+## Kubernetes Deployment
 
----
+- Namespace: lumina
+- Backend Replicas: 2
+- Frontend Replicas: 2
 
-## 🚀 Quick Start — Docker (Recommended)
+## Ingress Routing
+
+Frontend:
+https://checkops.in
+
+Backend:
+https://api.checkops.in
+
+Ingress routes traffic to the appropriate Kubernetes service based on the Host header.
+
+## NGINX Reverse Proxy
+
+NGINX forwards internet traffic to the Kubernetes Ingress Controller NodePort.
+
+## SSL
+
+SSL certificates are generated using Let's Encrypt and Certbot.
+
+## Jenkins CI/CD Flow
+
+1. Checkout Source Code
+2. Docker Login
+3. Build Backend Image
+4. Build Frontend Image
+5. Push Images To Docker Hub
+6. Clone Manifest Repository
+7. Update Deployment Image Tags
+8. Commit Changes
+9. Push Changes To GitHub
+10. ArgoCD Synchronization
+
+## GitOps Workflow
+
+Developer -> GitHub -> Webhook -> Jenkins -> Docker Hub -> Manifest Repo -> ArgoCD -> Kubernetes
+
+## Verification Commands
 
 ```bash
-# 1. Clone / enter project
-cd app
-
-# 2. Start everything
-docker-compose up --build
-
-# 3. Open browser
-#    Frontend:  http://localhost:3000
-#    Backend:   http://localhost:8000
-#    API Docs:  http://localhost:8000/docs
+kubectl get pods -n lumina
+kubectl get deploy -n lumina
+kubectl get svc -n lumina
+kubectl get ingress -n lumina
+kubectl get pods -n argocd
+kubectl get pods -n ingress-nginx
 ```
 
----
+## Author
 
-## 🛠️ Manual Setup
-
-### Backend
-
-```bash
-cd backend
-
-# Create virtual env
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your MySQL credentials
-
-# Run
-uvicorn main:app --reload --port 8000
-```
-
-### Frontend
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.local.example .env.local
-# NEXT_PUBLIC_API_URL=http://localhost:8000
-
-# Run
-npm run dev
-# Open http://localhost:3000
-```
-
-### MySQL
-
-Make sure MySQL is running and create the database:
-
-```sql
-CREATE DATABASE authapp;
-```
-
-The tables (`users`, `login_history`) are **auto-created** when the backend starts.
-
----
-
-## 🔌 API Endpoints
-
-| Method | Path           | Auth     | Description          |
-|--------|----------------|----------|----------------------|
-| GET    | /health        | No       | Health check         |
-| POST   | /api/register  | No       | Create account       |
-| POST   | /api/login     | No       | Login, get JWT       |
-| GET    | /api/me        | Bearer   | Get current user     |
-
-### Register Body
-```json
-{ "full_name": "Jane Doe", "email": "jane@example.com", "password": "secret123" }
-```
-
-### Login Body
-```json
-{ "email": "jane@example.com", "password": "secret123" }
-```
-
-### Response (both)
-```json
-{
-  "message": "Login successful!",
-  "token": "<JWT>",
-  "user": { "id": 1, "full_name": "Jane Doe", "email": "...", "avatar_seed": "jane" }
-}
-```
-
----
-
-## 🎨 Design Highlights
-
-- **Animated background**: Floating color orbs, twinkling star field, subtle grid overlay
-- **Glassmorphism cards**: Frosted-glass effect with gold border glow on hover
-- **DiceBear avatars**: Unique avatar auto-generated per user via `https://api.dicebear.com`
-- **Unsplash imagery**: High-quality space/galaxy backgrounds via CDN
-- **Gold accent system**: Consistent `#f4c542` gold used across buttons, inputs, stats
-- **Smooth transitions**: Slide-up/down animations on form switches and page load
-
----
-
-## 🔐 Security Notes
-
-- Passwords hashed with **bcrypt** (cost factor 12)
-- JWT tokens expire after **24 hours**
-- Change `JWT_SECRET` in `.env` before deploying to production
-- Add HTTPS / rate-limiting for production use
-
----
-
-## 📦 Tech Stack
-
-| Layer     | Technology                          |
-|-----------|-------------------------------------|
-| Backend   | FastAPI 0.111, Uvicorn, PyJWT       |
-| Auth      | bcrypt, JWT (HS256)                 |
-| Database  | MySQL 8, mysql-connector-python     |
-| Frontend  | Next.js 14, React 18, TypeScript    |
-| Styling   | Tailwind CSS 3, Custom CSS          |
-| Fonts     | Playfair Display + DM Sans (Google) |
-| Avatars   | DiceBear API (free CDN)             |
-| Images    | Unsplash CDN                        |
-# lumina_app
+Ramjeet Prajapati
+GitHub: https://github.com/ramjeet51
+Docker Hub: https://hub.docker.com/u/ramjeet500
