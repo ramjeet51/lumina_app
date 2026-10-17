@@ -4,5 +4,21 @@ venv/
 backend/venv/
 ai-agent/venv/
 .next/
+*.tsbuildinfo
 __pycache__/
+*.py[cod]
+*.swp
+.DS_Store
+
 .env
+.env.*
+!.env.example
+!**/.env.example
+
+# Terraform local files and sensitive state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log

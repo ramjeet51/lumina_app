@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Empty means same-origin. Production serves the UI and proxies /api on one host.
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export async function apiRequest(
   path: string,
@@ -12,10 +13,17 @@ export async function apiRequest(
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const data = await res.json();
+  let data: any = {};
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) throw new Error("Something went wrong");
+    throw new Error("Unexpected response from the server");
+  }
 
   if (!res.ok) {
-    throw new Error(data.detail || "Something went wrong");
+    const detail = data.detail;
+    throw new Error(typeof detail === "string" ? detail : "Something went wrong");
   }
   return data;
 }

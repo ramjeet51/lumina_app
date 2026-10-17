@@ -16,13 +16,14 @@ module.exports = {
       name: "lumina-frontend",
       cwd: "/home/ramjeet/lumina-full-project/frontend",
       script: "npm",
-      args: "run dev",
+      args: "run start",
       watch: false,
       autorestart: true,
   env: {
-    NODE_ENV: "development",
+    NODE_ENV: "production",
     PORT: 3000,
-    NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    NEXT_PUBLIC_API_URL: "",
+    BACKEND_INTERNAL_URL: "http://127.0.0.1:8000"
   }
 }
   ]

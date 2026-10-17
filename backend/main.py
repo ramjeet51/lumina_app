@@ -1,8 +1,11 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-
+import logging
+import os
+from datetime import datetime, timedelta
 from typing import Optional
+
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -11,16 +14,25 @@ import mysql.connector
 import bcrypt
 import jwt
 
-from dotenv import load_dotenv
-load_dotenv()
-import os
-from datetime import datetime, timedelta
-from contextlib import contextmanager
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("lumina")
+
 app = FastAPI(title="Auth API", version="1.0.0")
+
+
+def cors_origins() -> list:
+    raw = os.getenv("CORS_ORIGINS", "*").strip()
+    if raw in ("", "*"):
+        return ["*"]
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins(),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,12 +41,16 @@ app.add_middleware(
 # Config
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", "3306")),
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "authapp"),
     "autocommit": True,
+    "connection_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
 }
-JWT_SECRET = os.getenv("JWT_SECRET", "your-super-secret-key-change-in-production")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if len(JWT_SECRET) < 16:
+    raise RuntimeError("JWT_SECRET must be set to a unique value")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24
 
@@ -47,14 +63,23 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Create database and tables at runtime if they don't exist."""
+    """Create database and tables at runtime if they don't exist.
+
+    Existing tables and rows are left in place. This never drops data.
+    """
     config_no_db = {k: v for k, v in DB_CONFIG.items() if k != "database"}
     config_no_db["autocommit"] = True
-    conn = mysql.connector.connect(**config_no_db)
-    cursor = conn.cursor()
-
-    cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{DB_CONFIG['database']}`")
-    cursor.execute(f"USE `{DB_CONFIG['database']}`")
+    try:
+        conn = mysql.connector.connect(**config_no_db)
+        cursor = conn.cursor()
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{DB_CONFIG['database']}`")
+        cursor.execute(f"USE `{DB_CONFIG['database']}`")
+    except mysql.connector.Error as exc:
+        if getattr(exc, "errno", None) != 1044:
+            raise
+        logger.warning("CREATE DATABASE is not permitted; using the configured database")
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -74,7 +99,7 @@ def init_db():
             user_id    INT       NOT NULL,
             logged_in  DATETIME  DEFAULT CURRENT_TIMESTAMP,
             ip_address VARCHAR(45) DEFAULT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            INDEX (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """)
     cursor.execute("""
@@ -85,7 +110,7 @@ def init_db():
             description TEXT         DEFAULT NULL,
             color       VARCHAR(20)  DEFAULT '#f4c542',
             created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            INDEX (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """)
 
@@ -102,14 +127,14 @@ def init_db():
             due_date    DATE         DEFAULT NULL,
             created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
             updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE CASCADE,
-            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+            INDEX (user_id),
+            INDEX (project_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """)
 
     cursor.close()
     conn.close()
-    print("✅ Database and tables ready.")
+    logger.info("Database and tables ready")
 
 # ─── Models ──────────────────────────────────────────────────────────────────
 
@@ -146,11 +171,36 @@ def decode_token(token: str) -> dict:
 
 @app.on_event("startup")
 def startup():
+    logger.info("Starting Lumina API")
     init_db()
+
+@app.on_event("shutdown")
+def shutdown():
+    logger.info("Lumina API shutdown complete")
 
 @app.get("/health")
 def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+@app.get("/ready")
+def ready():
+    """Liveness stays on /health. This checks that MySQL accepts a query."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+    except mysql.connector.Error:
+        logger.exception("Readiness check failed")
+        raise HTTPException(status_code=503, detail="database unavailable")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return {"status": "ready", "timestamp": datetime.utcnow().isoformat()}
 
 @app.post("/api/register", status_code=201)
 def register(body: RegisterRequest):
@@ -546,7 +596,7 @@ def create_notes_table():
             pinned     TINYINT(1)   DEFAULT 0,
             created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            INDEX (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """)
     cursor.close(); conn.close()
